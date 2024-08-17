@@ -1,0 +1,3389 @@
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/main.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'models/app_state.dart';
+import 'screens/home_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'utils/telegram_helper.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final apiData = ApiData();
+  try {
+    await initializeApiData(apiData);
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => apiData),
+          ChangeNotifierProvider(create: (context) => AppState()),
+        ],
+        child: MyApp(),
+      ),
+    );
+  } catch (e) {
+    // Log the error and send a notification to Telegram
+    print("Ошибка при инициализации приложения: $e");
+    await TelegramHelper.sendTelegramError(
+        "Ошибка при инициализации приложения: $e");
+  }
+}
+
+Future<void> initializeApiData(ApiData apiData) async {
+  try {
+    final url =
+        Uri.parse('https://functions.yandexcloud.net/d4e5ht4ojjbkp9ktbe9v');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      // Корректное преобразование данных из JSON
+      final promoCodes = (data['promo_codes'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(
+          key,
+          (value as Map<String, dynamic>).map(
+            (k, v) => MapEntry(k, v as String),
+          ),
+        ),
+      );
+
+      final orderLinks = (data['order_links'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(
+          key,
+          (value as Map<String, dynamic>).map(
+            (k, v) => MapEntry(k, v as String),
+          ),
+        ),
+      );
+
+      apiData.setApiData(
+          data['proxy'], data['api_key'], promoCodes, orderLinks);
+    } else {
+      throw Exception('Не удалось загрузить proxy и API ключ');
+    }
+  } catch (e) {
+    print("Ошибка при загрузке API данных: $e");
+    await TelegramHelper.sendTelegramError(
+        "Ошибка при загрузке API данных: $e");
+    rethrow;
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Recipe App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: HomeScreen(),
+    );
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/constants/list_constants.dart
+  List<String> cookingMethods = [
+    'Любой способ',
+    'Жарка',
+    'На пару',
+    'В мультиварке',
+    'Запекание',
+    'Варка',
+    'Тушение',
+    'Гриль',
+    'Копчение',
+    'Фритюр',
+    'Су-вид',
+    'Бланширование',
+    'Ферментация',
+    'Соление',
+    'Маринование',
+    'Карамелизация'
+  ];
+
+  final List<String> categories = [
+    'Любая категория',
+    'Завтраки',
+    'Бульоны',
+    'Закуски',
+    'Напитки',
+    'Основные блюда',
+    'Паста и пицца',
+    'Ризотто',
+    'Салаты',
+    'Соусы и маринады',
+    'Супы',
+    'Сэндвичи',
+    'Выпечка и десерты',
+    'Заготовки'
+  ];
+
+  final List<String> defaultDishes = ['Любое блюдо'];
+
+  List<String> currentDishes = ['Любое блюдо'];
+
+  final List<String> cuisines = [
+    'Любая кухня',
+    'Итальянская кухня',
+    'Грузинская кухня',
+    'Китайская кухня',
+    'Французская кухня',
+    'Русская кухня',
+    'Японская кухня',
+    'Индийская кухня',
+    'Мексиканская кухня',
+    'Армянская кухня',
+    'Американская кухня',
+    'Испанская кухня',
+    'Немецкая кухня',
+    'Греческая кухня',
+    'Азербайджанская кухня',
+    'Европейская кухня',
+    'Еврейская кухня',
+    'Корейская кухня',
+    'Тайская кухня',
+    'Паназиатская кухня',
+    'Турецкая кухня',
+    'Узбекская кухня',
+    'Татарская кухня',
+    'Средиземноморская кухня',
+    'Арабская кухня',
+    'Украинская кухня',
+    'Польская кухня',
+    'Британская кухня',
+    'Белорусская кухня',
+    'Норвежская кухня',
+    'Шведская кухня',
+    'Марокканская кухня',
+    'Болгарская кухня',
+    'Австрийская кухня',
+    'Австралийская кухня',
+    'Финская кухня',
+    'Сербская кухня',
+    'Венгерская кухня',
+    'Вьетнамская кухня',
+    'Молдавская кухня',
+    'Осетинская кухня',
+    'Канадская кухня',
+    'Алжирская кухня',
+    'Дагестанская кухня',
+    'Албанская кухня',
+    'Мировая кухня',
+    'Мальтийская кухня',
+    'Каталонская кухня',
+    'Туркменская кухня',
+    'Афганская кухня',
+    'Египетская кухня',
+    'Крымская кухня',
+    'Раджастанская кухня',
+    'Африканская кухня',
+    'Филиппинская кухня',
+    'Шотландская кухня',
+    'Сирийская кухня',
+    'Таджикская кухня',
+    'Португальская кухня',
+    'Латиноамериканская кухня',
+    'Латвийская кухня',
+    'Индонезийская кухня',
+    'Датская кухня',
+    'Бурятская кухня',
+    'Кавказская кухня',
+    'Колумбийская кухня',
+    'Креольская кухня',
+    'Сицилийская кухня',
+    'Советская кухня',
+    'Черногорская кухня',
+    'Камбоджийская кухня',
+    'Казахская кухня',
+    'Чеченская кухня',
+    'Северно-индийская кухня',
+    'Южно-индийская кухня',
+    'Скандинавская кухня',
+    'Бразильская кухня',
+    'Кухня Вестероса',
+    'Перуанская кухня',
+    'Голландская кухня',
+    'Чешская кухня',
+    'Литовская кухня',
+    'Ливанская кухня',
+    'Кубинская кухня',
+    'Киргизская кухня',
+    'Башкирская кухня',
+    'Исландская кухня',
+    'Швейцарская кухня',
+    'Абхазская кухня',
+    'Хорватская кухня',
+    'Кипрская кухня',
+    'Румынская кухня',
+    'Персидская кухня',
+    'Сингапурская кухня',
+    'Пакистанская кухня',
+    'Черкесская кухня',
+    'Пенджабская кухня',
+    'Восточно-индийская кухня',
+    'Одесская кухня',
+    'Малайзийская кухня',
+    'Ирландская кухня',
+    'Авторская кухня',
+    'Югославская кухня',
+    'Эстонская кухня',
+    'Карибская кухня',
+    'Бельгийская кухня',
+    'Аргентинская кухня'
+  ];
+  final List<String> menus = [
+    'Любое меню',
+    'Кето-диета',
+    'Безглютеновая диета',
+    'Вегетарианская еда',
+    'Веганская еда',
+    'Безлактозная диета',
+    'Детское меню',
+    'Низкокалорийная еда',
+    'Постная еда',
+    'Меню при диабете'
+  ];
+  final List<String> cookingTimes = [
+    'Любое время',
+    'До 30 минут',
+    'До 1 часа',
+    'Более 1 часа'
+  ];
+  final List<String> difficulties = [
+    'Любая сложность',
+    'Легкий',
+    'Средний',
+    'Сложный'
+  ];
+  final List<String> costs = [
+    'Любая стоимость',
+    'Бюджетные',
+    'Средняя стоимость',
+    'Дорогие'
+  ];
+  final List<String> seasons = [
+    'Любой сезон',
+    'Летние',
+    'Зимние',
+    'Весенние',
+    'Осенние'
+  ];
+
+  final Map<String, List<String>> dishesByCategory = {
+    'Завтраки': [
+      'Любое блюдо',
+      'Каши',
+      'Омлет',
+      'Яичница',
+      'Каши на воде',
+      'Сырники',
+      'Творожные запеканки',
+      'Овсяная каша',
+      'Рисовая каша',
+      'Каши на молоке',
+      'Фриттата',
+      'Драники',
+      'Мюсли',
+      'Гранола'
+    ],
+    'Бульоны': [
+      'Любое блюдо',
+      'Куриный бульон',
+      'Овощной бульон',
+      'Мясной бульон',
+      'Рыбный бульон',
+      'Грибной бульон'
+    ],
+    'Закуски': [
+      'Любое блюдо',
+      'Холодные закуски',
+      'Сырные закуски',
+      'Паштеты',
+      'Рулетики',
+      'Праздничные закуски',
+      'Тартар',
+      'Дип',
+      'Чипсы',
+      'Хумус',
+      'Начинки для тарталеток',
+      'Карпаччо',
+      'Канапе',
+      'Гуакамоле',
+      'Рулет из лаваша',
+      'Запеканка из кабачков',
+      'Тортилья',
+      'Соленая рыба',
+      'Фондю',
+      'Такос',
+      'Творожные закуски',
+      'Фаршированные яйца',
+      'Лобио',
+      'Кесадилья',
+      'Закусочные торты',
+      'Заливное',
+      'Лечо',
+      'Бастурма'
+    ],
+    'Напитки': [
+      'Любое блюдо',
+      'Коктейли',
+      'Алкогольные напитки',
+      'Смузи',
+      'Коктейли алкогольные',
+      'Напитки безалкогольные',
+      'Кофе',
+      'Лимонад',
+      'Чай',
+      'Компоты',
+      'Молочный коктейль',
+      'Пунш',
+      'Коктейли безалкогольные',
+      'Горячий шоколад',
+      'Коктейли с джином',
+      'Коктейли с водкой',
+      'Глинтвейн',
+      'Коктейли с ромом',
+      'Ликеры',
+      'Банановый смузи',
+      'Коктейли с вином',
+      'Соки',
+      'Коктейли с виски',
+      'Мохито',
+      'Морс',
+      'Кисель',
+      'Коктейли с текилой',
+      'Коктейли с бренди',
+      'Какао',
+      'Сангрия',
+      'Настойки',
+      'Грог',
+      'Газированные напитки',
+      'Клубничный смузи',
+      'Квас',
+      'Сбитень',
+      'Вина',
+      'Наливка',
+      'Сидр',
+      'Глёг',
+      'Белая сангрия',
+      'Самогон',
+      'Безалкогольная сангрия',
+      'Вино'
+    ],
+    'Основные блюда': [
+      'Любое блюдо',
+      'Запеканка',
+      'Котлеты',
+      'Рулеты',
+      'Рагу',
+      'Стейки',
+      'Лапша',
+      'Блюда из баранины',
+      'Пюре',
+      'Шашлык',
+      'Блюда с фаршем',
+      'Плов',
+      'Блюда из рыбы',
+      'Гречневая каша',
+      'Блюда из овощей',
+      'Роллы',
+      'Блюда из мяса',
+      'Рецепты с индейкой',
+      'Картошка с грибами',
+      'Жаркое',
+      'Лазанья',
+      'Блюда из птицы',
+      'Блюда с соевым соусом',
+      'Курица в духовке',
+      'Перец фаршированный',
+      'Вареники',
+      'Овощное рагу',
+      'Блюда из курицы',
+      'Куриные котлеты',
+      'Пельмени',
+      'Тефтели',
+      'Голубцы',
+      'Фрикадельки',
+      'Овощи в духовке',
+      'Отбивные',
+      'Рыба в духовке',
+      'Гратен',
+      'Жульен',
+      'Мясо в духовке',
+      'Фаршированные блюда',
+      'Гуляш',
+      'Соте',
+      'Рыбные котлеты',
+      'Деруны',
+      'Паэлья',
+      'Зразы',
+      'Кебаб',
+      'Рататуй',
+      'Блюда из говядины',
+      'Крокеты',
+      'Шницель',
+      'Шаурма',
+      'Блюда с рисом',
+      'Овощное рагу с кабачками',
+      'Полента',
+      'Блюда из морепродуктов',
+      'Буррито',
+      'Мусака',
+      'Бифштекс',
+      'Биточки',
+      'Клецки',
+      'Блюда из круп',
+      'Котлеты из индейки',
+      'Манты',
+      'Ростбиф',
+      'Бефстроганов',
+      'Шашлык куриный',
+      'Долма',
+      'Мясо по-французски',
+      'Чахохбили',
+      'Цыпленок табака',
+      'Хинкали',
+      'Фрикасе',
+      'Эскалоп',
+      'Люля-кебаб',
+      'Буженина',
+      'Шашлык из баранины',
+      'Плов с курицей',
+      'Постные котлеты',
+      'Азу',
+      'Аджапсандал',
+      'Котлеты на пару',
+      'Узбекский плов',
+      'Рецепты с кроликом',
+      'Галушки',
+      'Печеночный торт',
+      'Гуляш из свинины',
+      'Бигус',
+      'Чанахи',
+      'Бешбармак',
+      'Киевские котлеты',
+      'Тефтели в томатном соусе',
+      'Праздничные блюда из курицы',
+      'Тушенка',
+      'Тефтели с рисом',
+      'Плов из свинины'
+    ],
+    'Паста и пицца': [
+      'Любое блюдо',
+      'Спагетти',
+      'Макароны',
+      'Паста карбонара',
+      'Равиоли',
+      'Пенне',
+      'Домашняя паста',
+      'Пицца с сыром',
+      'Пицца с помидорами',
+      'Тесто для пиццы',
+      'Ньокки',
+      'Феттуччини',
+      'Лингвини Тальятелле',
+      'Пицца с колбасой',
+      'Каннеллони',
+      'Тонкая пицца',
+      'Болоньезе',
+      'Паста с грибами',
+      'Фарфалле',
+      'Пицца с грибами',
+      'Фузилли',
+      'Пицца дрожжевая',
+      'Пицца с морепродуктами',
+      'Мясная пицца',
+      'Пицца с ветчиной Тортеллини',
+      'Паста с морепродуктами',
+      'Пицца с курицей',
+      'Орекьетте',
+      'Маргарита',
+      'Паппарделле',
+      'Четыре сыра',
+      'Паста в сливочном соусе',
+      'Пицца диетическая',
+      'Быстрое тесто для пиццы Тальолини',
+      'Тесто для пиццы без дрожжей',
+      'Пепперони',
+      'Паста с креветками',
+      'Гарганелли',
+      'Паста с курицей'
+    ],
+    'Ризотто': [
+      'Любое блюдо',
+      'Ризотто с овощами',
+      'Ризотто с грибами',
+      'Ризотто с мясом',
+      'Ризотто с морепродуктами',
+      'Ризотто без риса',
+      'Ризотто по-милански',
+      'Ризотто с курицей',
+      'Ризотто с телятиной',
+      'Ризотто с уткой',
+      'Ризотто с кроликом'
+    ],
+    'Салаты': [
+      'Любое блюдо',
+      'Овощные салаты',
+      'Салаты без майонеза',
+      'Салаты с курицей',
+      'Фруктовые салаты',
+      'Рыбные салаты',
+      'Теплые салаты',
+      'Классические салаты',
+      'Летние салаты',
+      'Вегетарианские салаты',
+      'Мясные салаты',
+      'Новогодние салаты',
+      'Оливье',
+      'Слоеные салаты',
+      'Винегрет',
+      'Салаты из баклажанов',
+      'Салаты из огурцов',
+      'Салат «Цезарь»',
+      'Салаты из капусты',
+      'Салаты с майонезом',
+      'Крабовый салат',
+      'Салаты с сыром',
+      'Сладкие салаты',
+      'Салаты из яиц',
+      'Салаты с грибами',
+      'Салаты с морепродуктами',
+      'Салаты с фасолью',
+      'Мимоза',
+      'Праздничные салаты',
+      'Греческий салат',
+      'Острые салаты',
+      'Салаты с помидорами',
+      'Диетические салаты',
+      'Салаты с креветками',
+      'Постные салаты',
+      'Салаты корейские',
+      'Салаты с кальмаром',
+      'Салаты с ананасом',
+      'Новогодние салаты',
+      'Салаты из кабачков'
+    ],
+    'Соусы и маринады': [
+      'Любое блюдо',
+      'Соусы к рыбе',
+      'Майонез',
+      'Томатный соус',
+      'Чатни',
+      'Соус «Песто»',
+      'Терияки',
+      'Соусы к мясу',
+      'Сальса',
+      'Соусы к птице',
+      'Грибной соус',
+      'Сырный соус',
+      'Сметанный соус',
+      'Горчица',
+      'Соус «Бешамель»',
+      'Барбекю',
+      'Аджика',
+      'Соус «Тартар»',
+      'Соус «Цезарь»',
+      'Чесночный соус',
+      'Сливочный соус',
+      'Кетчуп',
+      'Горчичный соус',
+      'К салату',
+      'Сладкие соусы',
+      'Ткемали',
+      'Кисло-сладкий соус',
+      'Медовый соус',
+      'Брусничный соус',
+      'Соус с хреном',
+      'Чесночный соус с зеленью'
+    ],
+    'Супы': [
+      'Любое блюдо',
+      'Суп-пюре',
+      'Крем-суп',
+      'Суп с курицей',
+      'Гороховый суп',
+      'Рыбный суп',
+      'Борщ',
+      'Холодные супы',
+      'Тыквенный суп',
+      'Грибной суп',
+      'Томатный суп',
+      'Овощные супы',
+      'Гаспачо',
+      'Суп с мясом',
+      'Картофельный суп',
+      'Сырный суп',
+      'Щи',
+      'Солянка',
+      'Фруктово-ягодный суп',
+      'Луковый суп',
+      'Суп с фасолью',
+      'Суп-лапша',
+      'Окрошка',
+      'Уха',
+      'Похлебка',
+      'Рисовый суп',
+      'Рассольник',
+      'Суп с чечевицей',
+      'Свекольник',
+      'Молочный суп',
+      'Минестроне',
+      'Суп «Харчо»',
+      'Сборная солянка',
+      'Суп с фрикадельками',
+      'Мисо',
+      'Окрошка на квасе',
+      'Суп с вермишелью',
+      'Постные супы',
+      'Суп с клецками',
+      'Том-ям',
+      'Зеленый борщ',
+      'Щи из квашеной капусты',
+      'Шурпа',
+      'Лагман',
+      'Холодник',
+      'Окрошка на кефире',
+      'Холодный борщ',
+      'Таратор',
+      'Капустняк',
+      'Ботвинья',
+      'Хаш',
+      'Буйабес',
+      'Бозбаш',
+      'Кукси',
+      'Солянка с колбасой',
+      'Кулеш',
+      'Довга'
+    ],
+    'Сэндвичи': [
+      'Любое блюдо',
+      'Открытый бутерброд',
+      'Тосты',
+      'Клубный сэндвич',
+      'Брускетта',
+      'Гамбургер',
+      'Закрытый бутерброд',
+      'Бутерброды на праздничный стол',
+      'Горячие бутерброды',
+      'Хот-дог',
+      'Чизбургер',
+      'Бутерброды с сыром',
+      'Панини',
+      'Крок-месье',
+      'Бутерброды с красной икрой',
+      'Крок-мадам',
+      'Бутерброды с рыбой',
+      'Бутерброды со шпротами'
+    ],
+    'Выпечка и десерты': [
+      'Любое блюдо',
+      'Пироги',
+      'Торты',
+      'Печенье',
+      'Фруктовые десерты',
+      'Кексы',
+      'Блины',
+      'Хлеб',
+      'Мороженое',
+      'Оладьи',
+      'Пироги с яблоками',
+      'Пирожное',
+      'Маффины',
+      'Пудинг',
+      'Пирожки',
+      'Десертные крема',
+      'Булочки',
+      'Чизкейк',
+      'Конфеты',
+      'Желе',
+      'Мусс',
+      'Сироп',
+      'Шоколадный торт',
+      'Суфле',
+      'Лепешки',
+      'Сладкие рулеты',
+      'Брауни',
+      'Шарлотка',
+      'Овсяное печенье',
+      'Бисквит',
+      'Безе, меренги',
+      'Творожные десерты',
+      'Куличи',
+      'Тарталетки',
+      'Крем',
+      'Киш',
+      'Тирамису',
+      'Капкейк',
+      'Вафли',
+      'Десерты без выпечки',
+      'Панкейки',
+      'Штрудель',
+      'Выпечка с творогом',
+      'Пончики',
+      'Сорбет',
+      'Тесто для пирожков',
+      'Песочное печенье',
+      'Бисквитный торт',
+      'Пряники',
+      'Творожные пироги',
+      'Мармелад',
+      'Хачапури',
+      'Манник',
+      'Пироги с капустой',
+      'Слоеные пироги',
+      'Начинки для блинов',
+      'Гренки',
+      'Низкокалорийные десерты',
+      'Оладьи из кабачков',
+      'Галеты',
+      'Корзиночки',
+      'Бискотти',
+      'Эклеры',
+      'Торт «Наполеон»',
+      'Шоколадные маффины',
+      'Крекеры',
+      'Слойки',
+      'Творожное печенье',
+      'Торт «Медовик»',
+      'Ватрушки',
+      'Постные десерты',
+      'Круассаны',
+      'Блинные торты',
+      'Постные пироги',
+      'Зефир',
+      'Творожный торт',
+      'Рогалики',
+      'Творожная пасха',
+      'Медовый торт',
+      'Пироги с клубникой',
+      'Оладьи на кефире',
+      'Печенье с начинкой',
+      'Коврижка',
+      'Несладкое печенье',
+      'Фокачча',
+      'Трубочки',
+      'Профитроли',
+      'Пахлава',
+      'Сметанный торт',
+      'Курник',
+      'Глазурь',
+      'Творожники',
+      'Постное печенье',
+      'Заварной торт'
+    ],
+    'Заготовки': [
+      'Любое блюдо',
+      'Варенье',
+      'Соленья и консервация',
+      'Овощи на зиму',
+      'Помидоры на зиму',
+      'Джемы',
+      'Перцы на зиму',
+      'Капуста на зиму',
+      'Огурцы на зиму',
+      'Кабачки на зиму',
+      'Компоты на зиму',
+      'Салаты на зиму',
+      'Грибы на зиму',
+      'Чеснок на зиму',
+      'Арбуз на зиму',
+      'Тыква на зиму'
+    ],
+  };
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/utils/add_to_shopping_list.dart
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/telegram_helper.dart'; // Импортируйте TelegramHelper
+
+List<String> parseIngredients(String details) {
+  try {
+    final ingredientsStart =
+        details.indexOf("**Ингредиенты:**") + "**Ингредиенты:**".length;
+    final ingredientsEnd = details.indexOf("**Приготовление:**");
+    if (ingredientsStart < 0 || ingredientsEnd < 0) return [];
+
+    final ingredientsSection =
+        details.substring(ingredientsStart, ingredientsEnd).trim();
+
+    final ingredientsList = ingredientsSection
+        .split('\n')
+        .map((ingredient) {
+          String cleanedIngredient = ingredient
+              .replaceAll(RegExp(r'\(.*?\)'), '')
+              .replaceAll('*', '')
+              .trim();
+          return cleanedIngredient;
+        })
+        .where((ingredient) =>
+            ingredient.isNotEmpty &&
+            !ingredient.toLowerCase().contains('соль') &&
+            !ingredient.toLowerCase().contains('сахар') &&
+            !ingredient.toLowerCase().contains(':') &&
+            !ingredient.toLowerCase().contains('мясо/рыба') &&
+            !ingredient.toLowerCase().contains('овощи') &&
+            !ingredient.toLowerCase().contains('фрукты') &&
+            !ingredient.toLowerCase().contains('растительное масло') &&
+            !ingredient.toLowerCase().contains('вода'))
+        .toList();
+
+    return ingredientsList;
+  } catch (e) {
+    TelegramHelper.sendTelegramError("Ошибка при парсинге ингредиентов: $e");
+    return []; 
+  }
+}
+
+
+Future<void> addToShoppingList(
+    BuildContext context, Map<String, String> recipe) async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> shoppingList = prefs.getStringList('shoppingList') ?? [];
+
+    // Parsing ingredients from the recipe
+    String ingredientsText = recipe['details']!;
+    List<String> ingredients = parseIngredients(ingredientsText);
+
+    // Add each ingredient to the shopping list
+    shoppingList.addAll(ingredients);
+
+    // Sort the shopping list alphabetically
+    shoppingList.sort();
+
+    await prefs.setStringList('shoppingList', shoppingList);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Ингредиенты добавлены в список покупок'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  } catch (e) {
+    TelegramHelper.sendTelegramError(
+        "Ошибка при добавлении ингредиентов в список покупок: $e");
+  }
+}
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/utils/launch.dart
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+Future<void> launchYouTube(BuildContext context, String recipeTitle) async {
+  const String baseUrl = 'https://www.youtube.com/results?search_query=';
+  final url = '$baseUrl${Uri.encodeComponent(recipeTitle)}';
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Не удалось открыть YouTube')));
+  }
+}
+
+Future<void> launchYandexImages(
+    BuildContext context, String recipeTitle) async {
+  const String baseUrl = 'https://yandex.ru/images/search?from=tabbar&text=';
+  final url = '$baseUrl${Uri.encodeComponent(recipeTitle)}';
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть Яндекс Картинки')));
+  }
+}
+
+Future<void> launchInBrowser(String url, String product) async {
+  String parsedProduct = product.split('-').first.trim();
+  final fullUrl = Uri.encodeFull('$url$parsedProduct');
+  final uri = Uri.parse(fullUrl);
+
+  if (!await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  )) {
+    throw Exception('Could not launch $fullUrl');
+  }
+}
+
+void openImageSearch(BuildContext context, String url) {
+  launch(url);
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/utils/order_menu_utils.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
+import 'launch.dart';
+
+// Функция для отображения меню заказа
+void showOrderMenu(BuildContext context, Map<String, String> recipe) {
+  final orderLinks = Provider.of<ApiData>(context, listen: false).orderLinks;
+
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Column(
+        children: [
+          ListTile(
+            title: Text('Сервисы доставки', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Divider(),
+          ...orderLinks.keys.map((url) {
+            final name = orderLinks[url]!['name']!;
+            final promoCode = orderLinks[url]!['code']!;
+            final product = recipe['title'] ?? '';
+
+            return ListTile(
+              leading: CachedNetworkImage(
+                imageUrl: 'https://www.google.com/s2/favicons?domain=${Uri.parse(url).host}',
+                width: 24,
+                height: 24,
+                placeholder: (context, url) => Container(),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
+              title: Text(name),
+              trailing: TextButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: promoCode));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Промокод "$promoCode" скопирован'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Text(
+                  promoCode,
+                  style: TextStyle(color: Colors.blue, fontSize: 12),
+                ),
+              ),
+              onTap: () {
+                launchInBrowser(url, product);
+                Navigator.pop(context); // Закрытие контекстного меню после выбора
+              },
+            );
+          }).toList(),
+        ],
+      );
+    },
+  );
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/utils/telegram_helper.dart
+import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io'; // Import for Platform
+import 'package:logger/logger.dart'; // Import logger package
+
+class TelegramHelper {
+  static const String _telegramBotToken =
+      "7247841674:AAF0jSv8q6aOdkzCKwpI9nDtm7xnwDoLwrE";
+
+  static const int _telegramChatId = 346967554;
+
+  static final Logger _logger = Logger(); // Logger instance
+
+  static Future<void> sendTelegramError(String errorMessage) async {
+    try {
+      // Получение информации об устройстве
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      Map<String, dynamic> deviceData = {};
+
+      if (Platform.isAndroid) {
+        deviceData = (await deviceInfo.androidInfo).toMap();
+      } else if (Platform.isIOS) {
+        deviceData = (await deviceInfo.iosInfo).toMap();
+      } else {
+        deviceData = {"platform": "Unknown"};
+      }
+
+      String deviceInfoString =
+          "Device: ${deviceData["model"]} (${deviceData["manufacturer"]}), OS: ${deviceData["systemVersion"]}";
+
+      // Формирование сообщения
+      String message = 'Ошибка в приложении: $errorMessage\n'
+          'Информация об устройстве:\n'
+          '$deviceInfoString';
+
+      // Отправка сообщения
+      final response = await http.post(
+        Uri.parse('https://api.telegram.org/bot$_telegramBotToken/sendMessage'),
+        body: {
+          'chat_id': _telegramChatId.toString(),
+          'text': message,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        _logger.e("Ошибка отправки сообщения в Telegram: ${response.body}");
+      }
+    } catch (e) {
+      _logger.e("Ошибка отправки сообщения в Telegram: $e");
+    }
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/utils/share_recipe.dart
+import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import '../utils/telegram_helper.dart'; // Импортируйте TelegramHelper
+
+const String googlePlayUrl =
+    "bit.ly/chto_prigotovit"; // Замените на ваш URL
+
+Future<void> shareRecipe(
+    BuildContext context, Map<String, String> recipe) async {
+  final message =
+      'Посмотри рецепт: ${recipe['title']}\n\n${recipe['details']}\n\n'
+      'Больше вкусных рецептов в приложении "Что приготовить?": $googlePlayUrl';
+  try {
+    await Share.share(message);
+  } catch (e) {
+    print('Ошибка при попытке поделиться рецептом: $e');
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Не удалось поделиться рецептом. Попробуйте еще раз.')));
+    TelegramHelper.sendTelegramError("Ошибка при попытке поделиться рецептом: $e");
+  }
+}
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/models/app_state.dart
+import 'package:flutter/material.dart';
+
+class ApiData with ChangeNotifier {
+  String? _proxy;
+  String? _apiKey;
+  Map<String, Map<String, String>> _promoCodes = {};
+  Map<String, Map<String, String>> _orderLinks = {};
+
+  String? get proxy => _proxy;
+  String? get apiKey => _apiKey;
+  Map<String, Map<String, String>> get promoCodes => _promoCodes;
+  Map<String, Map<String, String>> get orderLinks => _orderLinks;
+
+
+  void setApiData(String proxy, String apiKey, Map<String, Map<String, String>> promoCodes, Map<String, Map<String, String>> orderLinks) {
+    _proxy = proxy;
+    _apiKey = apiKey;
+    _promoCodes = promoCodes;
+    _orderLinks = orderLinks;
+    notifyListeners();
+  }
+}
+
+class AppState extends ChangeNotifier {
+  int _selectedIndex = 0;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  List<String> _includedIngredients = [];
+  List<String> _excludedIngredients = [];
+
+  // Свойства для хранения выбранных фильтров
+  String? _selectedCategory;
+  String? _selectedDish;
+  String? _selectedCuisine;
+  String? _selectedMenu;
+  String? _selectedCookingTime;
+  String? _selectedDifficulty;
+  String? _selectedCost;
+  String? _selectedSeason;
+  String? _selectedCookingMethod;
+  String? _preferences;
+  int _numberOfPeople = 4;
+
+  // Геттеры для доступа к свойствам
+  int get selectedIndex => _selectedIndex;
+  GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
+  String? get selectedCategory => _selectedCategory;
+  String? get selectedDish => _selectedDish;
+  String? get selectedCuisine => _selectedCuisine;
+  String? get selectedMenu => _selectedMenu;
+  String? get selectedCookingTime => _selectedCookingTime;
+  String? get selectedDifficulty => _selectedDifficulty;
+  String? get selectedCost => _selectedCost;
+  String? get selectedSeason => _selectedSeason;
+  String? get selectedCookingMethod => _selectedCookingMethod;
+  String? get preferences => _preferences;
+  int get numberOfPeople => _numberOfPeople;
+  List<String> get includedIngredients => _includedIngredients;
+  List<String> get excludedIngredients => _excludedIngredients;
+
+  // Сеттеры для изменения свойств
+  void setSelectedIndex(int index) {
+    _selectedIndex = index;
+    notifyListeners();
+  }
+
+  void setSelectedCategory(String? category) {
+    _selectedCategory = category;
+    notifyListeners();
+  }
+
+  void setSelectedDish(String? dish) {
+    _selectedDish = dish;
+    notifyListeners();
+  }
+
+  void setSelectedCuisine(String? cuisine) {
+    _selectedCuisine = cuisine;
+    notifyListeners();
+  }
+
+  void setSelectedMenu(String? menu) {
+    _selectedMenu = menu;
+    notifyListeners();
+  }
+
+  void setSelectedCookingTime(String? cookingTime) {
+    _selectedCookingTime = cookingTime;
+    notifyListeners();
+  }
+
+  void setSelectedDifficulty(String? difficulty) {
+    _selectedDifficulty = difficulty;
+    notifyListeners();
+  }
+
+  void setSelectedCost(String? cost) {
+    _selectedCost = cost;
+    notifyListeners();
+  }
+
+  void setSelectedSeason(String? season) {
+    _selectedSeason = season;
+    notifyListeners();
+  }
+
+  void setSelectedCookingMethod(String? method) {
+    _selectedCookingMethod = method;
+    notifyListeners();
+  }
+
+  void setPreferences(String? preferences) {
+    _preferences = preferences;
+    notifyListeners();
+  }
+
+  void setNumberOfPeople(int number) {
+    _numberOfPeople = number;
+    notifyListeners();
+  }
+
+  void setIncludedIngredients(List<String> ingredients) {
+    _includedIngredients = ingredients;
+    notifyListeners();
+  }
+
+  void setExcludedIngredients(List<String> ingredients) {
+    _excludedIngredients = ingredients;
+    notifyListeners();
+  }
+
+  // Метод для выполнения поиска рецептов
+  void performRecipeSearch() {
+    setSelectedIndex(3); // Переход на экран "Рецепты"
+    navigatorKey.currentState?.pushReplacementNamed('/'); // Переключение вкладок
+    notifyListeners();
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/favorites_screen.dart
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import '../utils/telegram_helper.dart'; // Import the TelegramHelper
+import 'favorite_recipe_detail_screen.dart'; // Import the new screen
+
+class FavoritesScreen extends StatefulWidget {
+  @override
+  _FavoritesScreenState createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  final List<Map<String, String>> _favoritesList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoritesList();
+  }
+
+  void _loadFavoritesList() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<String> favorites = prefs.getStringList('favoritesList') ?? [];
+      setState(() {
+        for (String item in favorites) {
+          _favoritesList.add(Map<String, String>.from(jsonDecode(item)));
+        }
+      });
+    } catch (e) {
+      print("Error loading favorites: $e");
+      await TelegramHelper.sendTelegramError("Error loading favorites: $e");
+    }
+  }
+
+  void _clearList() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('favoritesList');
+      setState(() {
+        _favoritesList.clear();
+      });
+    } catch (e) {
+      print("Error clearing favorites list: $e");
+      await TelegramHelper.sendTelegramError("Error clearing favorites list: $e");
+    }
+  }
+
+  void _navigateToRecipeDetail(Map<String, String> recipe) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FavoriteRecipeDetailScreen(recipe: recipe),
+      ),
+    );
+  }
+
+  void _removeRecipe(int index) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _favoritesList.removeAt(index);
+      });
+      List<String> favorites = _favoritesList.map((e) => jsonEncode(e)).toList();
+      await prefs.setStringList('favoritesList', favorites);
+    } catch (e) {
+      print("Error removing recipe: $e");
+      await TelegramHelper.sendTelegramError("Error removing recipe: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Избранные рецепты'),
+      ),
+      body: ListView.builder(
+        itemCount: _favoritesList.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(_favoritesList[index]['title']!),
+            onTap: () => _navigateToRecipeDetail(_favoritesList[index]),
+            trailing: IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () => _removeRecipe(index),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/favorite_recipe_detail_screen.dart
+import 'package:flutter/material.dart';
+import '../utils/order_menu_utils.dart';
+import '../utils/launch.dart';
+import '../utils/add_to_shopping_list.dart';
+import '../utils/share_recipe.dart';
+
+class FavoriteRecipeDetailScreen extends StatelessWidget {
+  final Map<String, String> recipe;
+
+  const FavoriteRecipeDetailScreen({required this.recipe});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(recipe['title']!),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              recipe['title']!,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8.0),
+            ElevatedButton.icon(
+              icon: Icon(Icons.add_shopping_cart),
+              label: Text('Добавить ингредиенты в список покупок'),
+              onPressed: () => addToShoppingList(context, recipe),
+            ),
+            const SizedBox(height: 16.0),
+            Text(
+              recipe['details']!,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  icon: Icon(Icons.video_library),
+                  label: Text('Видео рецепта'),
+                  onPressed: () => launchYouTube(context, recipe['title']!),
+                ),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.image),
+                  label: Text('Картинки блюда'),
+                  onPressed: () =>
+                      launchYandexImages(context, recipe['title']!),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0),
+            Center(
+              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.share),
+                    label: Text('Поделиться рецептом'),
+                    onPressed: () => shareRecipe(context, recipe),
+                  ),
+                  const SizedBox(height: 16.0),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.shopping_cart),
+                    label: Text('Заказать готовое блюдо'),
+                    // Используем метод из utils
+                    onPressed: () => showOrderMenu(context, recipe),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/recipes_list_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'dart:io';
+import 'package:http/io_client.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../models/app_state.dart';
+import 'recipe_detail_screen.dart';
+import '../utils/launch.dart';
+import '../utils/telegram_helper.dart'; // Импортируйте TelegramHelper
+
+class RecipesListScreen extends StatefulWidget {
+  final String? selectedCategory;
+  final String? selectedDish;
+  final String? selectedCuisine;
+  final String? selectedMenu;
+  final String? selectedCookingTime;
+  final String? selectedDifficulty;
+  final String? selectedCost;
+  final String? selectedSeason;
+  final String? selectedCookingMethod;
+  final List<String> includedIngredients;
+  final List<String> excludedIngredients;
+  final String preferences;
+
+  RecipesListScreen({
+    this.selectedCategory,
+    this.selectedDish,
+    this.selectedCuisine,
+    this.selectedMenu,
+    this.selectedCookingTime,
+    this.selectedDifficulty,
+    this.selectedCost,
+    this.selectedSeason,
+    this.selectedCookingMethod,
+    required this.includedIngredients,
+    required this.excludedIngredients,
+    required this.preferences,
+    required int numberOfPeople,
+  });
+
+  @override
+  _RecipesListScreenState createState() => _RecipesListScreenState();
+}
+
+class _RecipesListScreenState extends State<RecipesListScreen> {
+  bool _isLoading = false;
+  List<String> _recipes = [];
+  List<String> _allFetchedRecipes = []; // Keep track of all fetched recipes
+  String? _result;
+  String? _errorMessage;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _sendQuery();
+  }
+
+  Future<void> _sendQuery() async {
+    final apiData = Provider.of<ApiData>(context, listen: false);
+    final appState = Provider.of<AppState>(context, listen: false);
+    final proxy = apiData.proxy;
+    final apiKey = apiData.apiKey;
+
+    if (proxy == null || apiKey == null) {
+      setState(() {
+        _errorMessage = 'Proxy и API ключ не загружены.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final query =
+        'Напиши 20 названий рецептов. на русском. одним списком. каждый рецепт пронумеруй. Без комментариев и заголовка. '
+        'Категория: ${widget.selectedCategory}. '
+        'Блюдо: ${widget.selectedDish}. '
+        'Кухня: ${widget.selectedCuisine}. '
+        'Меню: ${widget.selectedMenu}. '
+        'Время приготовления: ${widget.selectedCookingTime}. '
+        'Сложность: ${widget.selectedDifficulty}. '
+        'Стоимость ингредиентов: ${widget.selectedCost}. '
+        'Сезонность: ${widget.selectedSeason}. '
+        'Способ приготовления: ${widget.selectedCookingMethod}. '
+        'Включенные ингредиенты: ${widget.includedIngredients.join(', ')}. '
+        'Исключенные ингредиенты: ${widget.excludedIngredients.join(', ')}. '
+        'Предпочтения: ${widget.preferences}. '
+        'Количество человек: ${appState.numberOfPeople}. '; // Используем значение из appState
+
+    final client = HttpClient();
+    final proxyParts = proxy.split('@');
+    final credentials = proxyParts[0].split(':');
+    final hostPort = proxyParts[1].split(':');
+
+    client.findProxy = (uri) {
+      return "PROXY ${hostPort[0]}:${hostPort[1]}";
+    };
+    client.addProxyCredentials(
+      hostPort[0],
+      int.parse(hostPort[1]),
+      'Basic',
+      HttpClientBasicCredentials(credentials[0], credentials[1]),
+    );
+
+    final ioClient = IOClient(client);
+
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: apiKey,
+        httpClient: ioClient,
+      );
+
+      final content = [Content.text(query)];
+      final response = await model.generateContent(content);
+
+      setState(() {
+        _result = response.text;
+        print("Received response: $_result"); // Debug print
+        _parseRecipes();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Ошибка: $e");
+      setState(() {
+        _errorMessage = 'Ошибка: $e';
+        _isLoading = false;
+      });
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError(
+          "Ошибка при получении списка рецептов: $e");
+    } finally {
+      ioClient.close();
+    }
+  }
+
+  void _parseRecipes() {
+    if (_result != null) {
+      try {
+        // Remove any unwanted characters or whitespace
+        final cleanedResult =
+            _result!.replaceAll('\n', '').replaceAll('\r', '').trim();
+        print("Cleaned Result: $cleanedResult"); // Debug print
+
+        final lines = cleanedResult.split(RegExp(r'\d+\.\s*'));
+        lines.removeWhere((line) => line.isEmpty); // Remove any empty lines
+        setState(() {
+          _recipes = lines;
+          _allFetchedRecipes
+              .addAll(lines); // Add the new recipes to the full list
+        });
+      } catch (e) {
+        print("Ошибка парсинга: $e");
+        setState(() {
+          _errorMessage = 'Ошибка парсинга: $e';
+        });
+        // Отправка сообщения в Telegram при ошибке
+        TelegramHelper.sendTelegramError("Ошибка при парсинге рецептов: $e");
+      }
+    }
+  }
+
+  Future<void> _findMoreRecipes() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final previouslyFetchedRecipes = _allFetchedRecipes.join(', ');
+    final newPrompt =
+        'Напиши 20 названий рецептов. на русском. одним списком. каждый рецепт пронумеруй. Без комментариев и заголовка.'
+        'Исключи следующие рецепты: $previouslyFetchedRecipes.';
+
+    final apiData = Provider.of<ApiData>(context, listen: false);
+    final proxy = apiData.proxy;
+    final apiKey = apiData.apiKey;
+
+    if (proxy == null || apiKey == null) {
+      setState(() {
+        _errorMessage = 'Proxy и API ключ не загружены.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final client = HttpClient();
+    final proxyParts = proxy.split('@');
+    final credentials = proxyParts[0].split(':');
+    final hostPort = proxyParts[1].split(':');
+
+    client.findProxy = (uri) {
+      return "PROXY ${hostPort[0]}:${hostPort[1]}";
+    };
+    client.addProxyCredentials(
+      hostPort[0],
+      int.parse(hostPort[1]),
+      'Basic',
+      HttpClientBasicCredentials(credentials[0], credentials[1]),
+    );
+
+    final ioClient = IOClient(client);
+
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: apiKey,
+        httpClient: ioClient,
+      );
+
+      final content = [Content.text(newPrompt)];
+      final response = await model.generateContent(content);
+
+      setState(() {
+        _result = response.text;
+        print("Received response: $_result"); // Debug print
+        _parseRecipes();
+        _isLoading = false;
+      });
+
+      // Прокручиваем к началу списка
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.jumpTo(0);
+      });
+    } catch (e) {
+      print("Ошибка: $e");
+      setState(() {
+        _errorMessage = 'Ошибка: $e';
+        _isLoading = false;
+      });
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError(
+          "Ошибка при получении списка рецептов (findMoreRecipes): $e");
+    } finally {
+      ioClient.close();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Список рецептов'),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _recipes.length +
+                      1, // Количество элементов в списке + 1 для кнопки
+                  itemBuilder: (context, index) {
+                    if (index < _recipes.length) {
+                      return ListTile(
+                        title: Text(_recipes[index]),
+                        trailing: IconButton(
+                          icon: Icon(Icons.image_search, color: Colors.purple),
+                          onPressed: () {
+                            try {
+                              launchYandexImages(context, _recipes[index]);
+                            } catch (e) {
+                              // Отправка сообщения в Telegram при ошибке
+                              TelegramHelper.sendTelegramError(
+                                  "Ошибка при открытии Яндекс Картинки: $e");
+                            }
+                          },
+                        ),
+                        onTap: () {
+                          try {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RecipeDetailScreen(
+                                  recipe:
+                                      'Напиши рецепт "${_recipes[index]}". на русском. без твоих комментариев. Точно расчитай ингридиенты по количеству порций. Рецепт должен содержать заголовок с указанием количества порций, время приготовления, подзаголовки: **Ингредиенты:**, **Приготовление:**, **Советы:**.'
+                                      'Категория: ${widget.selectedCategory}. '
+                                      'Блюдо: ${widget.selectedDish}. '
+                                      'Кухня: ${widget.selectedCuisine}. '
+                                      'Меню: ${widget.selectedMenu}. '
+                                      'Время приготовления: ${widget.selectedCookingTime}. '
+                                      'Сложность: ${widget.selectedDifficulty}. '
+                                      'Стоимость ингредиентов: ${widget.selectedCost}. '
+                                      'Сезонность: ${widget.selectedSeason}. '
+                                      'Способ приготовления: ${widget.selectedCookingMethod}. '
+                                      'Включенные ингредиенты: ${widget.includedIngredients.join(', ')}. '
+                                      'Исключенные ингредиенты: ${widget.excludedIngredients.join(', ')}. '
+                                      'Предпочтения: ${widget.preferences}. '
+                                      'Количество порций: ${appState.numberOfPeople}. ', // Используем значение из appState
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            // Отправка сообщения в Telegram при ошибке
+                            TelegramHelper.sendTelegramError(
+                                "Ошибка при переходе к детализации рецепта: $e");
+                          }
+                        },
+                      );
+                    } else {
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                try {
+                                  _findMoreRecipes();
+                                } catch (e) {
+                                  // Отправка сообщения в Telegram при ошибке
+                                  TelegramHelper.sendTelegramError(
+                                      "Ошибка при поиске дополнительных рецептов: $e");
+                                }
+                              },
+                              child: Text('Найти еще'),
+                            ),
+                          ),
+                          SizedBox(height: 80),
+                        ],
+                      );
+                    }
+                  },
+                ),
+    );
+  }
+}
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/shopping_list_screen.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../utils/launch.dart';
+import '../utils/telegram_helper.dart'; // Импортируйте TelegramHelper
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
+
+
+
+class ShoppingListScreen extends StatefulWidget {
+  @override
+  _ShoppingListScreenState createState() => _ShoppingListScreenState();
+}
+
+class _ShoppingListScreenState extends State<ShoppingListScreen> {
+  final List<String> _shoppingList = [];
+  final List<String> _completedList = [];
+  final TextEditingController _textController = TextEditingController();
+  final FocusNode _textFieldFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _lastWords = '';
+  String _previousWords = '';
+  bool _speechEnabled = false;
+  bool _showHint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+    _loadShoppingList();
+    _loadShowHint();
+
+    _textFieldFocusNode.addListener(() {
+      if (!_textFieldFocusNode.hasFocus) {
+        FocusScope.of(context).unfocus();
+      }
+    });
+  }
+
+  void _initSpeech() async {
+    try {
+      _speechEnabled = await _speech.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => print('onError: $val'),
+      );
+      setState(() {});
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка инициализации SpeechToText: $e");
+    }
+  }
+
+  void _addProduct(String product) {
+    if (product.isNotEmpty) {
+      setState(() {
+        _shoppingList.add(product);
+        _scrollToBottom(); // Only scroll when a new product is added
+      });
+      _saveShoppingList();
+      _textController.clear();
+    }
+  }
+
+  void _addProducts(String products) {
+    // Разделяем строки по запятой и слову "и"
+    List<String> productList = products.split(RegExp(r',\s*|(?<!\S)и\s*'));
+    setState(() {
+      for (String product in productList) {
+        if (product.isNotEmpty) {
+          _shoppingList.add(product.trim());
+        }
+      }
+    });
+    _saveShoppingList();
+    _textController.clear();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _toggleProductCompletion(int index) {
+    setState(() {
+      if (index < _shoppingList.length) {
+        // Move from shopping list to completed list (insert at the beginning)
+        String item = _shoppingList.removeAt(index);
+        _completedList.insert(
+            0, item); // Add to the start of the completed list
+      } else {
+        // Move from completed list back to shopping list
+        int completedIndex = index - _shoppingList.length;
+        String item = _completedList.removeAt(completedIndex);
+        _shoppingList.add(item); // Add back to the end of the shopping list
+      }
+    });
+    _saveShoppingList();
+  }
+
+  void _editProduct(int index) {
+    final isCompleted = index >= _shoppingList.length;
+    final String item = isCompleted
+        ? _completedList[index - _shoppingList.length]
+        : _shoppingList[index];
+
+    TextEditingController editController = TextEditingController(text: item);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Редактировать продукт'),
+        content: TextField(
+          controller: editController,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                if (isCompleted) {
+                  _completedList[index - _shoppingList.length] =
+                      editController.text;
+                } else {
+                  _shoppingList[index] = editController.text;
+                }
+                _saveShoppingList();
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text('Сохранить'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeProduct(int index) {
+    // Unfocus the TextField to prevent the keyboard from appearing
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      if (index < _shoppingList.length) {
+        _shoppingList.removeAt(index);
+      } else {
+        int completedIndex = index - _shoppingList.length;
+        _completedList.removeAt(completedIndex);
+      }
+    });
+    _saveShoppingList();
+  }
+
+  void _clearList() {
+    setState(() {
+      _shoppingList.clear();
+      _completedList.clear();
+    });
+    _saveShoppingList();
+  }
+
+  void _startListening() async {
+    if (_speechEnabled && !_isListening) {
+      if (_showHint) {
+        _showHintDialog();
+      } else {
+        _startSpeechToText();
+      }
+    }
+  }
+
+  void _startSpeechToText() async {
+    try {
+      await _speech.listen(
+        onResult: (val) => setState(() {
+          _lastWords = val.recognizedWords;
+          if (_lastWords != _previousWords && val.finalResult) {
+            _addProducts(_lastWords);
+            _previousWords = _lastWords;
+          }
+        }),
+        listenFor: Duration(seconds: 120),
+        pauseFor: Duration(seconds: 5),
+        onSoundLevelChange: (val) => setState(() {}),
+        cancelOnError: true,
+        partialResults: true,
+      );
+      setState(() {
+        _isListening = true;
+      });
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка при запуске прослушивания: $e");
+    }
+  }
+
+  void _stopListening() async {
+    if (_isListening) {
+      try {
+        await _speech.stop();
+        setState(() {
+          _isListening = false;
+        });
+        _lastWords = '';
+        _previousWords = '';
+      } catch (e) {
+        // Отправка сообщения в Telegram при ошибке
+        TelegramHelper.sendTelegramError("Ошибка при остановке прослушивания: $e");
+      }
+    }
+  }
+
+  void _saveShoppingList() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setStringList('shoppingList', _shoppingList);
+      prefs.setStringList('completedList', _completedList);
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка при сохранении списка покупок: $e");
+    }
+  }
+
+  void _loadShoppingList() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _shoppingList.addAll(prefs.getStringList('shoppingList') ?? []);
+        _completedList.addAll(prefs.getStringList('completedList') ?? []);
+      });
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка при загрузке списка покупок: $e");
+    }
+  }
+
+  void _saveShowHint() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setBool('showHint', _showHint);
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка при сохранении подсказки: $e");
+    }
+  }
+
+  void _loadShowHint() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _showHint = prefs.getBool('showHint') ?? true;
+      });
+    } catch (e) {
+      // Отправка сообщения в Telegram при ошибке
+      TelegramHelper.sendTelegramError("Ошибка при загрузке подсказки: $e");
+    }
+  }
+
+  void _showHintDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Подсказка'),
+        content: Text(
+            'Вы можете разделять продукты при диктовке словом "запятая" или буквой "и".'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _showHint = false;
+              });
+              _saveShowHint();
+              Navigator.of(context).pop();
+              _startSpeechToText();
+            },
+            child: Text('Больше не показывать'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _startSpeechToText();
+            },
+            child: Text('ОК'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+      // Получаем данные из ApiData
+  final promoCodes = Provider.of<ApiData>(context).promoCodes;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Список покупок'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: _clearList,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: _shoppingList.length + _completedList.length,
+              itemBuilder: (context, index) {
+                final bool isCompleted = index >= _shoppingList.length;
+                final String item = isCompleted
+                    ? _completedList[index - _shoppingList.length]
+                    : _shoppingList[index];
+
+                return GestureDetector(
+                  onTap: () => _toggleProductCompletion(index),
+                  child: ListTile(
+                    title: AnimatedCrossFade(
+                      firstChild: Text(
+                        item,
+                        style: TextStyle(
+                          decoration: TextDecoration.none,
+                          color: Colors.black, // Normal color
+                        ),
+                      ),
+                      secondChild: Text(
+                        item,
+                        style: TextStyle(
+                          decoration: TextDecoration.lineThrough,
+                          color: Colors.black.withOpacity(0.5), // Dimmed color
+                        ),
+                      ),
+                      crossFadeState: isCompleted
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: Duration(milliseconds: 300),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<String>(
+                          icon: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            color: Colors.green,
+                            child: Center(
+                              child: Text(
+                                'BB',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          onSelected: (String url) {
+                            try {
+                              launchInBrowser(url, item);
+                            } catch (e) {
+                              // Отправка сообщения в Telegram при ошибке
+                              TelegramHelper.sendTelegramError(
+                                  "Ошибка при открытии сервиса доставки: $e");
+                            }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return [
+                              // Header for Services and Promo Codes
+                              PopupMenuItem<String>(
+                                enabled: false,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Сервисы доставки',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      'Промокоды',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Divider between header and items
+                              PopupMenuDivider(height: 10),
+                              // Service links and promo codes
+                              ...promoCodes.keys.map((url) {
+                                final name = promoCodes[url]!['name']!;
+                                final promoCode = promoCodes[url]!['code']!;
+                                final truncatedPromoCode = promoCode.length > 3
+                                    ? '${promoCode.substring(0, 3)}...'
+                                    : promoCode;
+
+                                return PopupMenuItem<String>(
+                                  value: url,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          // Use CachedNetworkImage instead of Image.network
+                                          CachedNetworkImage(
+                                            imageUrl:
+                                                'https://www.google.com/s2/favicons?domain=${Uri.parse(url).host}',
+                                            width: 24,
+                                            height: 24,
+                                            // Убираем placeholder, чтобы не показывать ничего до загрузки изображения
+                                            placeholder: (context, url) =>
+                                                Container(),
+                                            errorWidget:
+                                                (context, url, error) => Icon(
+                                                    Icons
+                                                        .error), // Error widget
+                                          ),
+
+                                          SizedBox(width: 8),
+                                          Text(
+                                              name), // Use the display name instead of the domain
+                                        ],
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Clipboard.setData(
+                                              ClipboardData(text: promoCode));
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  'Промокод "$promoCode" скопирован'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          truncatedPromoCode,
+                                          style: TextStyle(
+                                            color: Colors.blue,
+                                            fontSize:
+                                                12, // Smaller font size for promo code
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ];
+                          },
+                          elevation:
+                              0.0, // Remove elevation to minimize perceived animation
+                        ),
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert),
+                          onSelected: (String value) {
+                            if (value == 'edit') {
+                              _editProduct(index);
+                            } else if (value == 'delete') {
+                              _removeProduct(index);
+                            }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return [
+                              PopupMenuItem<String>(
+                                value: 'edit',
+                                child: Text('Изменить'),
+                              ),
+                              PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Text('Удалить'),
+                              ),
+                            ];
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    focusNode: _textFieldFocusNode,
+                    decoration: InputDecoration(
+                      labelText: 'Добавить продукт(ы)',
+                    ),
+                    onSubmitted: (value) {
+                      try {
+                        _addProducts(value);
+                        _textController.clear();
+                        _textFieldFocusNode.requestFocus();
+                      } catch (e) {
+                        // Отправка сообщения в Telegram при ошибке
+                        TelegramHelper.sendTelegramError(
+                            "Ошибка при добавлении продуктов: $e");
+                      }
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    try {
+                      _addProducts(_textController.text);
+                      _textController.clear();
+                      _textFieldFocusNode.requestFocus();
+                    } catch (e) {
+                      // Отправка сообщения в Telegram при ошибке
+                      TelegramHelper.sendTelegramError(
+                          "Ошибка при добавлении продуктов: $e");
+                    }
+                  },
+                ),
+                IconButton(
+                  icon:
+                      Icon(_isListening ? Icons.record_voice_over : Icons.mic),
+                  onPressed: () {
+                    if (_isListening) {
+                      _stopListening();
+                    } else {
+                      _startListening();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+}
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/recipe_detail_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/io_client.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../models/app_state.dart';
+import '../utils/add_to_shopping_list.dart';
+import '../utils/launch.dart';
+import '../utils/share_recipe.dart';
+import '../utils/order_menu_utils.dart';
+import '../utils/telegram_helper.dart'; // Import TelegramHelper
+
+extension StringExtension on String {
+  String capitalize() {
+    return this.length > 0
+        ? '${this[0].toUpperCase()}${this.substring(1)}'
+        : '';
+  }
+}
+
+class RecipeDetailScreen extends StatefulWidget {
+  final String recipe;
+
+  const RecipeDetailScreen({required this.recipe});
+
+  @override
+  _RecipeDetailScreenState createState() => _RecipeDetailScreenState();
+}
+
+class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+  bool _isLoading = false;
+  String? _recipeDetails;
+  late String _recipeTitle;
+
+  @override
+  void initState() {
+    super.initState();
+    _recipeTitle = _extractRecipeTitle(widget.recipe).capitalize();
+    _fetchRecipeDetails();
+  }
+
+  String _extractRecipeTitle(String recipe) {
+    final titleMatch = RegExp(r'"(.*?)"').firstMatch(recipe);
+    return titleMatch != null ? titleMatch.group(1)! : 'Unknown Recipe';
+  }
+
+  Future<void> _fetchRecipeDetails() async {
+    final apiData = Provider.of<ApiData>(context, listen: false);
+    final proxy = apiData.proxy;
+    final apiKey = apiData.apiKey;
+
+    if (proxy == null || apiKey == null) {
+      if (mounted) {
+        setState(() {
+          _recipeDetails = 'Proxy и API ключ не загружены.';
+        });
+      }
+      TelegramHelper.sendTelegramError("Proxy и API ключ не загружены. $proxy");
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    final client = HttpClient();
+    final proxyParts = proxy.split('@');
+    final credentials = proxyParts[0].split(':');
+    final hostPort = proxyParts[1].split(':');
+
+    client.findProxy = (uri) {
+      return "PROXY ${hostPort[0]}:${hostPort[1]}";
+    };
+    client.addProxyCredentials(
+      hostPort[0],
+      int.parse(hostPort[1]),
+      'Basic',
+      HttpClientBasicCredentials(credentials[0], credentials[1]),
+    );
+
+    final ioClient = IOClient(client);
+
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: apiKey,
+        httpClient: ioClient,
+      );
+
+      final content = [Content.text(widget.recipe)];
+      final response = await model.generateContent(content);
+
+      if (mounted) {
+        setState(() {
+          _recipeDetails = response.text;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Ошибка: $e");
+      if (mounted) {
+        setState(() {
+          _recipeDetails = 'Ошибка: Перезапустите пожалуйста приложение и попробуйте еще раз. $e ';
+          _isLoading = false;
+        });
+      }
+      TelegramHelper.sendTelegramError("Ошибка при получении рецепта: $e $apiKey");
+    } finally {
+      ioClient.close();
+    }
+  }
+
+
+  void _addToFavorites() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<String> favorites = prefs.getStringList('favoritesList') ?? [];
+      String recipeData = jsonEncode({
+        'title': _recipeTitle,
+        'details': _recipeDetails ?? 'Инструкции по приготовлению не найдены.'
+      });
+      favorites.add(recipeData);
+      await prefs.setStringList('favoritesList', favorites);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Рецепт добавлен в избранное'),
+        duration: Duration(seconds: 1),
+      ));
+    } catch (e) {
+      print("Ошибка при добавлении в избранное: $e");
+      TelegramHelper.sendTelegramError("Ошибка при добавлении в избранное: $e");
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Рецепт'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.favorite),
+            onPressed: _addToFavorites,
+          ),
+        ],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _recipeTitle,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8.0),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.add_shopping_cart),
+                    label: Text('Добавить ингредиенты в список покупок'),
+                    onPressed: () => addToShoppingList(context, {
+                      'title': _recipeTitle,
+                      'details': _recipeDetails ??
+                          'Инструкции по приготовлению не найдены.'
+                    }), // Передаем контекст и рецепт
+                  ),
+                  const SizedBox(height: 16.0),
+                  _recipeDetails != null
+                      ? Text(
+                          _recipeDetails!,
+                          style: TextStyle(fontSize: 16),
+                        )
+                      : Text('Инструкции по приготовлению не найдены.'),
+                  const SizedBox(height: 16.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.video_library),
+                        label: Text('Видео рецепта'),
+                        onPressed: () => launchYouTube(context, _recipeTitle),
+                      ),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.image),
+                        label: Text('Картинки блюда'),
+                        onPressed: () =>
+                            launchYandexImages(context, _recipeTitle),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.share),
+                      label: Text('Поделиться'),
+                      onPressed: () => shareRecipe(context, {
+                        'title': _recipeTitle,
+                        'details': _recipeDetails ??
+                            'Инструкции по приготовлению не найдены.'
+                      }), // Передаем контекст и данные рецепта
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.local_restaurant),
+                      label: Text('Заказать готовое блюдо'),
+                      onPressed: () => showOrderMenu(context, {
+                        'title': _recipeTitle,
+                        'details': _recipeDetails ??
+                            'Инструкции по приготовлению не найдены.'
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 80),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/home_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_state.dart';
+import '../utils/telegram_helper.dart'; // Import the TelegramHelper
+import 'recipe_search_screen.dart';
+import 'favorites_screen.dart';
+import 'shopping_list_screen.dart';
+import 'recipes_list_screen.dart';
+import 'recipe_detail_screen.dart';
+
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          CustomNavigator(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: BottomNavBar(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CustomNavigator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppState>(
+      builder: (context, appState, _) {
+        return Navigator(
+          key: appState.navigatorKey,
+          initialRoute: '/',
+          onGenerateRoute: (RouteSettings settings) {
+            try {
+              WidgetBuilder builder;
+              switch (settings.name) {
+                case '/':
+                  builder = (BuildContext _) => RecipeSearchScreen();
+                  break;
+                case '/favorites':
+                  builder = (BuildContext _) => FavoritesScreen();
+                  break;
+                case '/shopping_list':
+                  builder = (BuildContext _) => ShoppingListScreen();
+                  break;
+                case '/recipes_list':
+                  builder = (BuildContext _) => RecipesListScreen(
+                        selectedCategory: appState.selectedCategory,
+                        selectedDish: appState.selectedDish,
+                        selectedCuisine: appState.selectedCuisine,
+                        selectedMenu: appState.selectedMenu,
+                        selectedCookingTime: appState.selectedCookingTime,
+                        selectedDifficulty: appState.selectedDifficulty,
+                        selectedCost: appState.selectedCost,
+                        selectedSeason: appState.selectedSeason,
+                        selectedCookingMethod: appState.selectedCookingMethod,
+                        numberOfPeople: appState.numberOfPeople, // Added
+                        includedIngredients: appState.includedIngredients,
+                        excludedIngredients: appState.excludedIngredients,
+                        preferences: appState.preferences!,
+                      );
+                  break;
+                case '/recipe_detail':
+                  final recipe = settings.arguments as String;
+                  builder = (BuildContext _) => RecipeDetailScreen(recipe: recipe);
+                  break;
+                default:
+                  throw Exception('Invalid route: ${settings.name}');
+              }
+              return MaterialPageRoute(builder: builder, settings: settings);
+            } catch (e) {
+              print("Error generating route: ${settings.name}, Error: $e");
+              TelegramHelper.sendTelegramError("Error generating route: ${settings.name}, Error: $e");
+              return MaterialPageRoute(
+                builder: (context) => Scaffold(
+                  body: Center(child: Text('Error: Invalid route')),
+                ),
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
+class BottomNavBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppState>(
+      builder: (context, appState, _) {
+        return BottomNavigationBar(
+          currentIndex: appState.selectedIndex,
+          onTap: (index) {
+            try {
+              appState.setSelectedIndex(index);
+              switch (index) {
+                case 0:
+                  appState.navigatorKey.currentState?.pushReplacementNamed('/');
+                  break;
+                case 1:
+                  appState.navigatorKey.currentState?.pushReplacementNamed('/favorites');
+                  break;
+                case 2:
+                  appState.navigatorKey.currentState?.pushReplacementNamed('/shopping_list');
+                  break;
+              }
+            } catch (e) {
+              print("Error navigating to index $index: $e");
+              TelegramHelper.sendTelegramError("Error navigating to index $index: $e");
+            }
+          },
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.black54,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              label: 'Поиск',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite),
+              label: 'Избранное',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart),
+              label: 'Список покупок',
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+
+// Путь к файлу /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1/lib/screens/recipe_search_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'recipe_detail_screen.dart';
+import 'recipes_list_screen.dart';
+import '../models/app_state.dart';
+import '../constants/list_constants.dart';
+import '../utils/launch.dart';
+import '../utils/telegram_helper.dart'; // Импортируйте TelegramHelper
+
+class RecipeSearchScreen extends StatefulWidget {
+  @override
+  _RecipeSearchScreenState createState() => _RecipeSearchScreenState();
+}
+
+class _RecipeSearchScreenState extends State<RecipeSearchScreen> {
+  String? _selectedCategory;
+  String? _selectedDish;
+  String? _selectedCuisine;
+  String? _selectedMenu;
+  String? _selectedCookingTime;
+  String? _selectedDifficulty;
+  String? _selectedCost;
+  String? _selectedSeason;
+  String? _selectedCookingMethod;
+  int _numberOfPeople = 4;
+  String _searchQuery = ""; // Добавляем поле для хранения запроса поиска
+
+  final List<String> _includedIngredients = [];
+  final List<String> _excludedIngredients = [];
+  final TextEditingController _includeController = TextEditingController();
+  final TextEditingController _excludeController = TextEditingController();
+  final TextEditingController _preferencesController = TextEditingController();
+  final TextEditingController _filterNameController = TextEditingController();
+
+  List<Map<String, dynamic>> _savedFilters = [];
+
+  final TextEditingController _recipeNameController = TextEditingController();
+
+  void _searchRecipeByName() {
+    final recipeName = _searchQuery;
+    final prompt =
+        'Напиши рецепт "$recipeName" на русском языке. На $_numberOfPeople порций.Точно расчитай ингридиенты по количеству порций. Красиво отформатируй текст. Рецепт должен содержать заголовок с указанием количества порций, время приготовления, подзаголовки: **Ингредиенты:**, **Приготовление:**, **Советы:**.';
+
+    if (recipeName.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RecipeDetailScreen(
+            recipe: prompt,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Поиск рецептов'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Заголовок "Поиск по названию блюда"
+              Text(
+                'Поиск по названию блюда',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: _recipeNameController,
+                decoration: InputDecoration(
+                  labelText: 'Название блюда',
+                  hintText: 'Введите название блюда',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(color: Colors.purple),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
+              SizedBox(height: 10),
+              // Добавляем счетчик количества порций
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'На сколько порций?',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            if (_numberOfPeople > 1) {
+                              _numberOfPeople--;
+                            }
+                          });
+                        },
+                        icon: Icon(Icons.remove_circle_outline),
+                      ),
+                      Text(
+                        '$_numberOfPeople',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _numberOfPeople++;
+                          });
+                        },
+                        icon: Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  onPressed: _searchRecipeByName,
+                  child: Text('Найти'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              Divider(height: 20, thickness: 2, color: Colors.purple),
+              SizedBox(height: 10),
+
+              // Заголовок "Поиск по фильтру"
+              Text(
+                'Поиск по фильтру',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              _buildCategoryDropdown(
+                  'Любая категория', categories, _selectedCategory, (value) {
+                setState(() {
+                  _selectedCategory = value;
+                  currentDishes = dishesByCategory[value] ??
+                      defaultDishes; // Load dishes based on selected category
+                  _selectedDish = currentDishes.first;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedCategory(value!);
+                  Provider.of<AppState>(context, listen: false).setSelectedDish(
+                      _selectedDish!); // Update selected dish in AppState
+                });
+              }),
+
+              _buildDishDropdown('Любое блюдо', currentDishes, _selectedDish,
+                  (value) {
+                setState(() {
+                  _selectedDish = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedDish(value!);
+                });
+              }),
+
+              _buildCuisineDropdown('Любая кухня', cuisines, _selectedCuisine,
+                  (value) {
+                setState(() {
+                  _selectedCuisine = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedCuisine(value!);
+                });
+              }),
+              _buildDropdown('Любое меню', menus, _selectedMenu, (value) {
+                setState(() {
+                  _selectedMenu = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedMenu(value!);
+                });
+              }),
+              _buildDropdown(
+                  'Время приготовления', cookingTimes, _selectedCookingTime,
+                  (value) {
+                setState(() {
+                  _selectedCookingTime = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedCookingTime(value!);
+                });
+              }),
+              _buildDropdown('Сложность', difficulties, _selectedDifficulty,
+                  (value) {
+                setState(() {
+                  _selectedDifficulty = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedDifficulty(value!);
+                });
+              }),
+              _buildDropdown('Стоимость ингредиентов', costs, _selectedCost,
+                  (value) {
+                setState(() {
+                  _selectedCost = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedCost(value!);
+                });
+              }),
+              _buildDropdown('Сезонные рецепты', seasons, _selectedSeason,
+                  (value) {
+                setState(() {
+                  _selectedSeason = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedSeason(value!);
+                });
+              }),
+              _buildDropdown('Способ приготовления', cookingMethods,
+                  _selectedCookingMethod, (value) {
+                setState(() {
+                  _selectedCookingMethod = value;
+                  Provider.of<AppState>(context, listen: false)
+                      .setSelectedCookingMethod(value!);
+                });
+              }),
+              TextField(
+                controller: _preferencesController,
+                decoration: InputDecoration(
+                  labelText: 'Предпочтения',
+                  hintText: 'Например, без глютена, кето, низкокалорийные',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(color: Colors.purple),
+                  ),
+                ),
+                onChanged: (value) {
+                  Provider.of<AppState>(context, listen: false)
+                      .setPreferences(value);
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  _showIngredientsDialog(context);
+                },
+                child: Text('Ингредиенты'),
+              ),
+              SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'На сколько порций?',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  // Пример кода для изменения количества людей в AppState
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          if (Provider.of<AppState>(context, listen: false)
+                                  .numberOfPeople >
+                              1) {
+                            Provider.of<AppState>(context, listen: false)
+                                .setNumberOfPeople(Provider.of<AppState>(
+                                            context,
+                                            listen: false)
+                                        .numberOfPeople -
+                                    1);
+                          }
+                        },
+                        icon: Icon(Icons.remove_circle_outline),
+                      ),
+                      Text(
+                        '${Provider.of<AppState>(context).numberOfPeople}',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Provider.of<AppState>(context, listen: false)
+                              .setNumberOfPeople(
+                                  Provider.of<AppState>(context, listen: false)
+                                          .numberOfPeople +
+                                      1);
+                        },
+                        icon: Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    try {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RecipesListScreen(
+                            selectedCategory: _selectedCategory,
+                            selectedDish: _selectedDish,
+                            selectedCuisine: _selectedCuisine,
+                            selectedMenu: _selectedMenu,
+                            selectedCookingTime: _selectedCookingTime,
+                            selectedDifficulty: _selectedDifficulty,
+                            selectedCost: _selectedCost,
+                            selectedSeason: _selectedSeason,
+                            selectedCookingMethod:
+                                _selectedCookingMethod, // Новое свойство
+                            numberOfPeople: _numberOfPeople,
+                            includedIngredients:
+                                _includedIngredients, // Добавьте это
+                            excludedIngredients:
+                                _excludedIngredients, // Добавьте это
+                            preferences:
+                                _preferencesController.text, // Добавьте это
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      // Отправка сообщения в Telegram при ошибке
+                      TelegramHelper.sendTelegramError(
+                          "Ошибка на экране поиска: $e");
+                    }
+                  },
+                  child: Text('Найти'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    try {
+                      _showSaveFilterDialog(context);
+                    } catch (e) {
+                      // Отправка сообщения в Telegram при ошибке
+                      TelegramHelper.sendTelegramError(
+                          "Ошибка при сохранении фильтра: $e");
+                    }
+                  },
+                  child: Text('Сохранить текущий фильтр'),
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Сохраненные фильтры',
+                style: TextStyle(fontSize: 16),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: _savedFilters.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_savedFilters[index]['name']),
+                    subtitle: Text(_savedFilters[index]['description']),
+                    onTap: () {
+                      try {
+                        setState(() {
+                          _selectedCategory = _savedFilters[index]['category'];
+                          _selectedDish = _savedFilters[index]['dish'];
+                          _selectedCuisine = _savedFilters[index]['cuisine'];
+                          _selectedMenu = _savedFilters[index]['menu'];
+                          _selectedCookingTime =
+                              _savedFilters[index]['cookingTime'];
+                          _selectedDifficulty =
+                              _savedFilters[index]['difficulty'];
+                          _selectedCost = _savedFilters[index]['cost'];
+                          _selectedSeason = _savedFilters[index]['season'];
+                          _selectedCookingMethod =
+                              _savedFilters[index]['selectedCookingMethod'];
+                          _preferencesController.text =
+                              _savedFilters[index]['preferences'];
+                          _includedIngredients.clear();
+                          _includedIngredients.addAll(
+                              _savedFilters[index]['includedIngredients'] ?? []);
+                          _excludedIngredients.clear();
+                          _excludedIngredients.addAll(
+                              _savedFilters[index]['excludedIngredients'] ?? []);
+                          _numberOfPeople =
+                              _savedFilters[index]['numberOfPeople'];
+
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedCategory(_selectedCategory);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedDish(_selectedDish);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedCuisine(_selectedCuisine);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedMenu(_selectedMenu);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedCookingTime(_selectedCookingTime);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedDifficulty(_selectedDifficulty);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedCost(_selectedCost);
+                          Provider.of<AppState>(context, listen: false)
+                              .setSelectedSeason(_selectedSeason);
+                          Provider.of<AppState>(context, listen: false)
+                              .setPreferences(_preferencesController.text);
+                          Provider.of<AppState>(context, listen: false)
+                              .setNumberOfPeople(_numberOfPeople);
+                        });
+                      } catch (e) {
+                        // Отправка сообщения в Telegram при ошибке
+                        TelegramHelper.sendTelegramError(
+                            "Ошибка при загрузке сохраненного фильтра: $e");
+                      }
+                    },
+                  );
+                },
+              ),
+
+              SizedBox(height: 80), // Adding extra space at the bottom
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryDropdown(String hint, List<String> items,
+      String? selectedValue, ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.purple),
+          ),
+        ),
+        value: selectedValue,
+        items: items.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildDishDropdown(String hint, List<String> items,
+      String? selectedValue, ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.purple),
+          ),
+        ),
+        value: selectedValue,
+        items: items.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(value),
+                if (value != 'Любое блюдо' && _selectedDish != value)
+                  IconButton(
+                    icon: Icon(Icons.image_search, color: Colors.purple),
+                    onPressed: () {
+                      openImageSearch(context,
+                          'https://yandex.ru/images/search?from=tabbar&text=$value');
+                    },
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildCuisineDropdown(String hint, List<String> items,
+      String? selectedValue, ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.purple),
+          ),
+        ),
+        value: selectedValue,
+        items: items.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(value),
+                if (value != 'Любая кухня' && _selectedCuisine != value)
+                  IconButton(
+                    icon: Icon(Icons.image_search, color: Colors.purple),
+                    onPressed: () {
+                      openImageSearch(context,
+                          'https://yandex.ru/images/search?from=tabbar&text=$value кухня');
+                    },
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String hint, List<String> items, String? selectedValue,
+      ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: hint,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.purple),
+          ),
+        ),
+        value: selectedValue,
+        items: items.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  void _showIngredientsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Ингредиенты'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildIngredientInput('Включить ингредиенты',
+                        _includedIngredients, _includeController, (ingredient) {
+                      setState(() {
+                        _includedIngredients.add(ingredient);
+                      });
+                    }, setState),
+                    _buildIngredientInput('Исключить ингредиенты',
+                        _excludedIngredients, _excludeController, (ingredient) {
+                      setState(() {
+                        _excludedIngredients.add(ingredient);
+                      });
+                    }, setState),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _includedIngredients.clear();
+                      _excludedIngredients.clear();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Очистить всё'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Сохранить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSaveFilterDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Сохранить фильтр'),
+          content: TextField(
+            controller: _filterNameController,
+            decoration: InputDecoration(
+              labelText: 'Имя фильтра',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide(color: Colors.purple),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Отмена'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                try {
+                  setState(() {
+                    _savedFilters.add({
+                      'name': _filterNameController.text,
+                      'description': _generateFilterDescription(),
+                      'category': _selectedCategory,
+                      'dish': _selectedDish,
+                      'cuisine': _selectedCuisine,
+                      'menu': _selectedMenu,
+                      'cookingTime': _selectedCookingTime,
+                      'difficulty': _selectedDifficulty,
+                      'cost': _selectedCost,
+                      'season': _selectedSeason,
+                      'selectedCookingMethod': _selectedCookingMethod,
+                      'preferences': _preferencesController.text,
+                      'numberOfPeople': _numberOfPeople,
+                      'includedIngredients':
+                          List<String>.from(_includedIngredients), // Добавьте это
+                      'excludedIngredients':
+                          List<String>.from(_excludedIngredients), // Добавьте это
+                    });
+                    _filterNameController.clear();
+                  });
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  // Отправка сообщения в Telegram при ошибке
+                  TelegramHelper.sendTelegramError(
+                      "Ошибка при сохранении фильтра: $e");
+                }
+              },
+              child: Text('Сохранить'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _generateFilterDescription() {
+    List<String> parts = [];
+    if (_selectedCategory != null) parts.add('Категория: $_selectedCategory');
+    if (_selectedDish != null) parts.add('Блюдо: $_selectedDish');
+    if (_selectedCuisine != null) parts.add('Кухня: $_selectedCuisine');
+    if (_selectedMenu != null) parts.add('Меню: $_selectedMenu');
+    if (_selectedCookingTime != null) parts.add('Время: $_selectedCookingTime');
+    if (_selectedDifficulty != null)
+      parts.add('Сложность: $_selectedDifficulty');
+    if (_selectedCost != null) parts.add('Стоимость: $_selectedCost');
+    if (_selectedSeason != null) parts.add('Сезон: $_selectedSeason');
+    if (_selectedCookingMethod != null)
+      parts.add('Способ приготовления: $_selectedCookingMethod');
+    if (_preferencesController.text.isNotEmpty)
+      parts.add('Предпочтения: ${_preferencesController.text}');
+    if (_includedIngredients.isNotEmpty)
+      parts.add(
+          'Включенные ингредиенты: ${_includedIngredients.join(', ')}'); // Добавьте это
+    if (_excludedIngredients.isNotEmpty)
+      parts.add(
+          'Исключенные ингредиенты: ${_excludedIngredients.join(', ')}'); // Добавьте это
+    return parts.join(', ');
+  }
+
+  Widget _buildIngredientInput(
+      String label,
+      List<String> ingredients,
+      TextEditingController controller,
+      Function(String) onAdd,
+      StateSetter dialogSetState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: label.contains('Включить')
+                      ? '+ Ингредиент'
+                      : '- Ингредиент',
+                ),
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  onAdd(controller.text);
+                  controller.clear();
+                }
+              },
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 8.0,
+          children: ingredients.map((ingredient) {
+            return Chip(
+              label: Text(ingredient),
+              onDeleted: () {
+                dialogSetState(() {
+                  ingredients.remove(ingredient);
+                });
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
