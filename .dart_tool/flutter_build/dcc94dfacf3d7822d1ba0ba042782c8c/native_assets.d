@@ -1,1 +1,0 @@
- /Users/vladlyulin/Developer/project/рецепты/сборка/sborka/1 —\ копия/.dart_tool/flutter_build/dcc94dfacf3d7822d1ba0ba042782c8c/native_assets.yaml: 

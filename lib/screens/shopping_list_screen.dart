@@ -2,7 +2,6 @@
 // ShoppingListScreen - это экран, который позволяет пользователю управлять списком покупок. Пользователь может добавлять продукты в список вручную или с помощью голосовой диктовки, отмечать продукты как завершенные, редактировать или удалять продукты, а также очистить весь список.
 // Список покупок сохраняется в SharedPreferences, чтобы данные не терялись при перезапуске приложения.
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -34,7 +33,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   String _lastWords = ''; // Последние распознанные слова
   String _previousWords = ''; // Предыдущие распознанные слова
   bool _speechEnabled = false; // Флаг, указывающий на доступность диктовки
-  bool _showHint = true; // Флаг, указывающий на показ подсказки при первом запуске диктовки
+  bool _showHint =
+      true; // Флаг, указывающий на показ подсказки при первом запуске диктовки
 
   // Инициализация состояния
   @override
@@ -44,7 +44,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     _initSpeech(); // Инициализация диктовки
     _loadShoppingList(); // Загрузка списка покупок из SharedPreferences
     _loadShowHint(); // Загрузка флага показа подсказки
-  
+
     // Обработка изменения фокуса текстового поля
     _textFieldFocusNode.addListener(() {
       if (!_textFieldFocusNode.hasFocus) {
@@ -113,7 +113,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (index < _shoppingList.length) {
         // Перемещение из активного списка в завершенный (в начало)
         String item = _shoppingList.removeAt(index);
-        _completedList.insert(0, item); // Добавление в начало завершенного списка
+        _completedList.insert(
+            0, item); // Добавление в начало завершенного списка
       } else {
         // Перемещение из завершенного списка обратно в активный
         int completedIndex = index - _shoppingList.length;
@@ -126,7 +127,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   // Редактирование продукта
   void _editProduct(int index) {
-    final isCompleted = index >= _shoppingList.length; // Проверка, в каком списке находится продукт
+    final isCompleted = index >=
+        _shoppingList.length; // Проверка, в каком списке находится продукт
     final String item = isCompleted
         ? _completedList[index - _shoppingList.length]
         : _shoppingList[index];
@@ -180,7 +182,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         _shoppingList.removeAt(index); // Удаление из активного списка
       } else {
         int completedIndex = index - _shoppingList.length;
-        _completedList.removeAt(completedIndex); // Удаление из завершенного списка
+        _completedList
+            .removeAt(completedIndex); // Удаление из завершенного списка
       }
     });
     _saveShoppingList(); // Сохранение списка покупок в SharedPreferences
@@ -214,7 +217,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         onResult: (val) => setState(() {
           _lastWords = val.recognizedWords;
           if (_lastWords != _previousWords && val.finalResult) {
-            _addProducts(_lastWords); // Добавление распознанных продуктов в список
+            _addProducts(
+                _lastWords); // Добавление распознанных продуктов в список
             _previousWords = _lastWords; // Обновление предыдущих слов
           }
         }),
@@ -226,7 +230,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         partialResults: true,
       );
       setState(() {
-        _isListening = true; // Установка флага, указывающего на включенную диктовку
+        _isListening =
+            true; // Установка флага, указывающего на включенную диктовку
       });
     } catch (e) {
       // Отправка сообщения в Telegram при ошибке
@@ -240,13 +245,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       try {
         await _speech.stop();
         setState(() {
-          _isListening = false; // Сброс флага, указывающего на включенную диктовку
+          _isListening =
+              false; // Сброс флага, указывающего на включенную диктовку
         });
         _lastWords = '';
         _previousWords = '';
       } catch (e) {
         // Отправка сообщения в Telegram при ошибке
-        TelegramHelper.sendTelegramError("Ошибка при остановке прослушивания: $e");
+        TelegramHelper.sendTelegramError(
+            "Ошибка при остановке прослушивания: $e");
       }
     }
   }
@@ -259,7 +266,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       prefs.setStringList('completedList', _completedList);
     } catch (e) {
       // Отправка сообщения в Telegram при ошибке
-      TelegramHelper.sendTelegramError("Ошибка при сохранении списка покупок: $e");
+      TelegramHelper.sendTelegramError(
+          "Ошибка при сохранении списка покупок: $e");
     }
   }
 
@@ -273,7 +281,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       });
     } catch (e) {
       // Отправка сообщения в Telegram при ошибке
-      TelegramHelper.sendTelegramError("Ошибка при загрузке списка покупок: $e");
+      TelegramHelper.sendTelegramError(
+          "Ошибка при загрузке списка покупок: $e");
     }
   }
 
@@ -342,18 +351,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       appBar: AppBar(
         title: Text('Список покупок'),
         actions: [
-          IconButton( // Кнопка очистки списка
+          IconButton(
+            // Кнопка очистки списка
             icon: Icon(Icons.delete),
             onPressed: _clearList,
           ),
         ],
       ),
-      body: Column( // Основной столбец виджета
+      body: Column(
+        // Основной столбец виджета
         children: [
-          Expanded( // Занимает всю доступную высоту
-            child: ListView.builder( // Список для отображения продуктов
+          Expanded(
+            // Занимает всю доступную высоту
+            child: ListView.builder(
+              // Список для отображения продуктов
               controller: _scrollController,
-              itemCount: _shoppingList.length + _completedList.length, // Количество элементов в списке
+              itemCount: _shoppingList.length + _completedList.length,
+              // Количество элементов в списке
               itemBuilder: (context, index) {
                 // Проверяем, в каком списке находится продукт (активный / завершенный)
                 final bool isCompleted = index >= _shoppingList.length;
@@ -377,7 +391,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         item,
                         style: TextStyle(
                           decoration: TextDecoration.lineThrough,
-                          color: Colors.black.withOpacity(0.5), // Dimmed color
+                          color:
+                              Colors.black.withOpacity(0.5), // Dimmed color
                         ),
                       ),
                       crossFadeState: isCompleted
@@ -391,7 +406,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       children: [
                         // Кнопка для отображения промокодов и ссылок на сервисы доставки
                         PopupMenuButton<String>(
-                          icon: Container( // Виджет для отображения кнопки
+                          icon: Container(
+                            // Виджет для отображения кнопки
                             padding: EdgeInsets.symmetric(horizontal: 8.0),
                             color: Colors.green,
                             child: Center(
@@ -465,13 +481,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                                             // Placeholder для отображения до загрузки изображения
                                             placeholder: (context, url) =>
                                                 Container(),
-                                            errorWidget:
-                                                (context, url, error) => Icon(
-                                                    Icons
-                                                        .error), // Виджет ошибки загрузки
+                                            errorWidget: (context, url,
+                                                    error) =>
+                                                Icon(Icons
+                                                    .error), // Виджет ошибки загрузки
                                           ),
                                           SizedBox(width: 8),
-                                          Text(name), // Отображение названия сервиса доставки
+                                          Text(name),
+                                          // Отображение названия сервиса доставки
                                         ],
                                       ),
                                       // Кнопка для копирования промокода
@@ -542,12 +559,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row( // Строка для ввода продукта и кнопок
+            child: Row(
+              // Строка для ввода продукта и кнопок
               children: [
                 Expanded(
-                  child: TextField( // Текстовое поле для ввода продукта
+                  child: TextField(
+                    // Текстовое поле для ввода продукта
                     controller: _textController,
-                    focusNode: _textFieldFocusNode, // Фокус для текстового поля
+                    focusNode: _textFieldFocusNode,
+                    // Фокус для текстового поля
                     decoration: InputDecoration(
                       labelText: 'Добавить продукт(ы)', // Подсказка для ввода
                     ),
@@ -570,9 +590,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   icon: Icon(Icons.add),
                   onPressed: () {
                     try {
-                      _addProducts(_textController.text); // Добавление продуктов в список
+                      _addProducts(_textController
+                          .text); // Добавление продуктов в список
                       _textController.clear(); // Очистка текстового поля
                       _textFieldFocusNode.requestFocus(); // Возврат фокуса
+                      FocusScope.of(context)
+                          .unfocus(); // Скрыть клавиатуру и убрать фокус
                     } catch (e) {
                       // Отправка сообщения в Telegram при ошибке
                       TelegramHelper.sendTelegramError(
@@ -583,7 +606,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 // Кнопка для включения/отключения голосовой диктовки
                 IconButton(
                   icon: Icon(
-                      _isListening ? Icons.record_voice_over : Icons.mic), // Микрофон или микрофон с записью
+                      _isListening ? Icons.record_voice_over : Icons.mic),
+                  // Микрофон или микрофон с записью
                   onPressed: () {
                     if (_isListening) {
                       _stopListening(); // Остановка диктовки

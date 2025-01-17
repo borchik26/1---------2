@@ -14,6 +14,10 @@ class ApiData with ChangeNotifier {
   String? _apiKey; // API ключ
   Map<String, Map<String, String>> _promoCodes = {}; // Промокоды
   Map<String, Map<String, String>> _orderLinks = {}; // Ссылки на сервисы доставки
+  // Список сохраненных фильтров
+  static List<Map<String, dynamic>> savedFilters = [];
+  final TextEditingController recipeNameController = TextEditingController();
+
 
   // Геттеры для доступа к приватным полям
   String? get proxy => _proxy;

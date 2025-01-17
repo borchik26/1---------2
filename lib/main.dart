@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sborka/utils/myrouteobserver.dart';
 import 'models/app_state.dart';
 import 'screens/home_screen.dart';
 import 'package:http/http.dart' as http;
@@ -78,6 +79,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
+      navigatorObservers: <NavigatorObserver>[
+        MyRouteObserver(), // this will listen all changes
+      ],
       home: HomeScreen(),
     );
   }
